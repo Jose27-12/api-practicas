@@ -172,3 +172,7 @@ def generate_report(conversation_id: int, data: ReportRequest, db=Depends(get_db
         "mensaje": "Reporte enviado con PDF",
         "email": data.email
     }
+    
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
