@@ -1,64 +1,60 @@
-from transformers import AutoTokenizer, AutoModelForCausalLM
-from peft import PeftModel
-import torch
+import os
 import re
+from dotenv import load_dotenv
+from huggingface_hub import InferenceClient
 
-BASE_MODEL = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
-LORA_MODEL = "JoseFand/modelo-practicas-academicas"
+load_dotenv()
 
-print("Cargando modelo IA...")
+HF_TOKEN = os.getenv("HF_TOKEN")
 
-tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL)
+client = InferenceClient(api_key=HF_TOKEN)
 
-base_model = AutoModelForCausalLM.from_pretrained(
-    BASE_MODEL,
-    torch_dtype=torch.float32
-)
-
-model = PeftModel.from_pretrained(base_model, LORA_MODEL)
-
-print("Modelo cargado correctamente")
 
 def chat_practicas(pregunta: str):
 
-    prompt = f"""
-Eres un asistente virtual especializado en prácticas académicas universitarias.
+    try:
 
-Reglas:
-- Responde siempre en español.
-- Máximo 2 frases.
-- No uses inglés.
-- Usa palabras simples.
+        completion = client.chat.completions.create(
+            model="meta-llama/Meta-Llama-3-8B-Instruct",
+            messages=[
+                {
+                    "role": "system",
+                    "content": """
+Eres un asistente virtual especializado en una plataforma de gestión de prácticas académicas universitarias.
 
-Usuario: {pregunta}
-Asistente:
+Tu función es ayudar a estudiantes, docentes y empresas con información clara, puntual y concisa sobre:
+
+- registro de empresas
+- seguimiento de prácticas académicas
+- informes de avance
+- evaluación final de prácticas
+- tutor académico y tutor empresarial
+- finalización de prácticas
+
+Responde en máximo 3 o 4 líneas.
+
+Si la pregunta no está relacionada con prácticas académicas responde:
+"Este asistente solo responde preguntas sobre la plataforma de gestión de prácticas académicas."
+
+Si el usuario escribe "finalizar", "salir" o "terminar conversación":
+"La conversación ha finalizado. Gracias por usar el asistente de prácticas académicas."
 """
+                },
+                {
+                    "role": "user",
+                    "content": pregunta
+                }
+            ],
+            max_tokens=120,
+            temperature=0.3
+        )
 
-    inputs = tokenizer(prompt, return_tensors="pt")
+        respuesta = completion.choices[0].message.content
 
-    output = model.generate(
-        **inputs,
-        max_new_tokens=110,
-        do_sample=True,
-        temperature=0.3,
-        top_p=0.6,
-        repetition_penalty=1.4,
-        no_repeat_ngram_size=3,
-        eos_token_id=tokenizer.eos_token_id,
-        pad_token_id=tokenizer.eos_token_id
-    )
+        respuesta = re.sub(r'[^a-zA-ZáéíóúÁÉÍÓÚñÑ0-9.,¿?¡! ]', '', respuesta)
 
-    respuesta = tokenizer.decode(output[0], skip_special_tokens=True)
-    respuesta = respuesta.split("Asistente:")[-1].strip()
+        return respuesta.strip()
 
-    # eliminar caracteres raros
-    respuesta = re.sub(r'[^a-zA-ZáéíóúÁÉÍÓÚñÑ0-9.,¿?¡! ]', '', respuesta)
-
-    # eliminar palabras en inglés comunes
-    ingles = ["the","and","for","with","you","your","this","that","from","if"]
-    palabras = respuesta.split()
-    palabras = [p for p in palabras if p.lower() not in ingles]
-
-    respuesta = " ".join(palabras)
-
-    return respuesta
+    except Exception as e:
+        print("ERROR:", e)
+        return "Error al consultar el modelo."
