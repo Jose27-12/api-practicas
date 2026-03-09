@@ -1,7 +1,6 @@
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.lib.units import inch
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from datetime import datetime
 
@@ -23,28 +22,47 @@ class PDFService:
 
         styles = getSampleStyleSheet()
 
+        # 🎨 estilos personalizados
+        titulo_style = ParagraphStyle(
+            'Titulo',
+            parent=styles['Title'],
+            textColor=colors.HexColor("#1E3A8A"),
+            fontSize=24
+        )
+
+        seccion_style = ParagraphStyle(
+            'Seccion',
+            parent=styles['Heading2'],
+            textColor=colors.HexColor("#1E3A8A")
+        )
+
+        texto_style = ParagraphStyle(
+            'Texto',
+            parent=styles['Normal'],
+            fontSize=11,
+            leading=15
+        )
+
         elementos = []
 
         # Título
-        titulo = Paragraph(
-            "<b>Reporte de Conversación del Chatbot</b>",
-            styles['Title']
+        elementos.append(
+            Paragraph("Reporte de Conversación del Chatbot", titulo_style)
         )
 
-        elementos.append(titulo)
-        elementos.append(Spacer(1, 20))
+        elementos.append(Spacer(1, 15))
 
-        # Fecha
-        fecha = Paragraph(
-            f"Fecha: {datetime.now().strftime('%Y-%m-%d %H:%M')}",
-            styles['Normal']
+        elementos.append(
+            Paragraph(f"Fecha: {datetime.now().strftime('%Y-%m-%d %H:%M')}", texto_style)
         )
 
-        elementos.append(fecha)
-        elementos.append(Spacer(1, 20))
+        elementos.append(Spacer(1, 25))
 
-        # --- ANÁLISIS ---
-        elementos.append(Paragraph("<b>Análisis de la Conversación</b>", styles['Heading2']))
+        # --- ANALISIS NLP ---
+        elementos.append(
+            Paragraph("Análisis NLP", seccion_style)
+        )
+
         elementos.append(Spacer(1, 10))
 
         data = [
@@ -56,21 +74,26 @@ class PDFService:
         tabla = Table(data, colWidths=[150, 350])
 
         tabla.setStyle(TableStyle([
-            ("BACKGROUND", (0,0), (0,-1), colors.lightgrey),
-            ("TEXTCOLOR",(0,0),(-1,-1),colors.black),
+            ("BACKGROUND", (0,0), (0,-1), colors.HexColor("#1E3A8A")),
+            ("TEXTCOLOR",(0,0),(0,-1),colors.white),
 
-            ("GRID",(0,0),(-1,-1),1,colors.grey),
+            ("BACKGROUND",(1,0),(1,-1),colors.whitesmoke),
+
+            ("GRID",(0,0),(-1,-1),1,colors.HexColor("#CBD5F5")),
 
             ("FONTNAME",(0,0),(0,-1),"Helvetica-Bold"),
-
             ("VALIGN",(0,0),(-1,-1),"TOP"),
         ]))
 
         elementos.append(tabla)
+
         elementos.append(Spacer(1, 30))
 
-        # --- CONVERSACIÓN ---
-        elementos.append(Paragraph("<b>Conversación</b>", styles['Heading2']))
+        # --- CONVERSACION ---
+        elementos.append(
+            Paragraph("Conversación", seccion_style)
+        )
+
         elementos.append(Spacer(1, 15))
 
         for m in mensajes:
@@ -79,16 +102,14 @@ class PDFService:
             contenido = m.get("message", "")
 
             if sender.lower() in ["user", "usuario"]:
-                etiqueta = "<b>Usuario:</b>"
+                etiqueta = "<font color='#22D3EE'><b>Usuario:</b></font>"
             else:
-                etiqueta = "<b>Bot:</b>"
+                etiqueta = "<font color='#1E3A8A'><b>Asistente:</b></font>"
 
             texto = f"{etiqueta} {contenido}"
 
-            p = Paragraph(texto, styles['Normal'])
-
-            elementos.append(p)
-            elementos.append(Spacer(1, 10))
+            elementos.append(Paragraph(texto, texto_style))
+            elementos.append(Spacer(1, 8))
 
         doc.build(elementos)
 
