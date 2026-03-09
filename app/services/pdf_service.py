@@ -1,5 +1,8 @@
 from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.units import inch
+from reportlab.lib import colors
 from datetime import datetime
 
 
@@ -9,84 +12,84 @@ class PDFService:
 
         filename = f"reporte_conversacion_{conversation_id}.pdf"
 
-        c = canvas.Canvas(filename, pagesize=letter)
+        doc = SimpleDocTemplate(
+            filename,
+            pagesize=letter,
+            rightMargin=40,
+            leftMargin=40,
+            topMargin=40,
+            bottomMargin=40
+        )
 
-        y = 750
+        styles = getSampleStyleSheet()
+
+        elementos = []
 
         # Título
-        c.setFont("Helvetica-Bold", 18)
-        c.drawString(50, y, "Reporte de Conversación")
+        titulo = Paragraph(
+            "<b>Reporte de Conversación del Chatbot</b>",
+            styles['Title']
+        )
+
+        elementos.append(titulo)
+        elementos.append(Spacer(1, 20))
 
         # Fecha
-        y -= 30
-        c.setFont("Helvetica", 10)
-        c.drawString(50, y, f"Fecha: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+        fecha = Paragraph(
+            f"Fecha: {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+            styles['Normal']
+        )
 
-        # Información del análisis
-        y -= 40
-        c.setFont("Helvetica-Bold", 12)
-        c.drawString(50, y, "Análisis de la conversación")
+        elementos.append(fecha)
+        elementos.append(Spacer(1, 20))
 
-        y -= 20
-        c.setFont("Helvetica", 11)
-        c.drawString(50, y, f"Sentimiento: {reporte['sentimiento']}")
+        # --- ANÁLISIS ---
+        elementos.append(Paragraph("<b>Análisis de la Conversación</b>", styles['Heading2']))
+        elementos.append(Spacer(1, 10))
 
-        y -= 20
-        c.drawString(50, y, f"Palabras clave: {', '.join(reporte['palabras_clave'])}")
+        data = [
+            ["Sentimiento", reporte["sentimiento"]],
+            ["Palabras clave", ", ".join(reporte["palabras_clave"])],
+            ["Resumen", reporte["resumen"]],
+        ]
 
-        y -= 20
-        c.drawString(50, y, f"Resumen: {reporte['resumen']}")
+        tabla = Table(data, colWidths=[150, 350])
 
-        # Conversación
-        y -= 40
-        c.setFont("Helvetica-Bold", 12)
-        c.drawString(50, y, "Conversación")
+        tabla.setStyle(TableStyle([
+            ("BACKGROUND", (0,0), (0,-1), colors.lightgrey),
+            ("TEXTCOLOR",(0,0),(-1,-1),colors.black),
 
-        y -= 25
-        c.setFont("Helvetica", 11)
+            ("GRID",(0,0),(-1,-1),1,colors.grey),
+
+            ("FONTNAME",(0,0),(0,-1),"Helvetica-Bold"),
+
+            ("VALIGN",(0,0),(-1,-1),"TOP"),
+        ]))
+
+        elementos.append(tabla)
+        elementos.append(Spacer(1, 30))
+
+        # --- CONVERSACIÓN ---
+        elementos.append(Paragraph("<b>Conversación</b>", styles['Heading2']))
+        elementos.append(Spacer(1, 15))
 
         for m in mensajes:
 
             sender = m.get("sender", "usuario")
             contenido = m.get("message", "")
 
-            if sender.lower() == "user" or sender.lower() == "usuario":
-                etiqueta = "Usuario"
+            if sender.lower() in ["user", "usuario"]:
+                etiqueta = "<b>Usuario:</b>"
             else:
-                etiqueta = "Bot"
+                etiqueta = "<b>Bot:</b>"
 
-            texto = f"{etiqueta}: {contenido}"
+            texto = f"{etiqueta} {contenido}"
 
-            # dividir texto largo
-            lineas = self.wrap_text(texto, 80)
+            p = Paragraph(texto, styles['Normal'])
 
-            for linea in lineas:
+            elementos.append(p)
+            elementos.append(Spacer(1, 10))
 
-                c.drawString(60, y, linea)
-
-                y -= 18
-
-                if y < 50:
-                    c.showPage()
-                    y = 750
-                    c.setFont("Helvetica", 11)
-
-        c.save()
+        doc.build(elementos)
 
         return filename
-
-    def wrap_text(self, text, max_chars):
-        words = text.split()
-        lines = []
-        current_line = ""
-
-        for word in words:
-            if len(current_line + " " + word) <= max_chars:
-                current_line += " " + word
-            else:
-                lines.append(current_line.strip())
-                current_line = word
-
-        lines.append(current_line.strip())
-
-        return lines
