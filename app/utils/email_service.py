@@ -10,7 +10,6 @@ class EmailService:
 
     def __init__(self):
         self.api_key = os.getenv("BREVO_API_KEY")
-        print("BREVO_API_KEY:", self.api_key)  # DEBUG
 
     def send_email(self, destinatario: str, asunto: str, mensaje: str, pdf_path: str):
 
