@@ -14,10 +14,15 @@ from app.services.pdf_service import PDFService
 from app.services.message_service import MessageService
 app = FastAPI()
 # ───────────── CORS ─────────────
+origins = [
+    "http://localhost:5173",
+    "https://front-chatbot-5bsi2b8vt-jose-luis-projects-f35b6903.vercel.app"
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=origins,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
