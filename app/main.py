@@ -16,7 +16,8 @@ app = FastAPI()
 # ───────────── CORS ─────────────
 origins = [
     "http://localhost:5173",
-    "https://front-chatbot-5bsi2b8vt-jose-luis-projects-f35b6903.vercel.app"
+    "https://front-chatbot-5bsi2b8vt-jose-luis-projects-f35b6903.vercel.app",
+    "https://front-chatbot-rho.vercel.app"
 ]
 
 app.add_middleware(
